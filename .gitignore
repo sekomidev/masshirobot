@@ -394,6 +394,7 @@ _pkginfo.txt
 !?*.[Cc]ache/
 
 # Others
+songs/
 ClientBin/
 ~$*
 *~
