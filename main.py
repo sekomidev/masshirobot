@@ -15,11 +15,10 @@ users_running_download_command = {} # the list of users where their download req
 # remove song and metadata files from {songs_path} directory
 def cleanup(video_id: str, song_extension: str) -> None:
     os.remove(f"{songs_path}{video_id}.{song_extension}")
-    os.remove(f"{songs_path}{video_id}.info.json")
 
 
 def parse_download_command(message_text: str) -> dict or None:
-    pattern = r"/download\s+(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
+    pattern = r"(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
     match = re.search(pattern, message_text)
     
     if match: 
@@ -41,7 +40,7 @@ def start_command(message: Message) -> None:
 @bot.message_handler(commands=['download'])
 def download_command(message: Message) -> None:
     user_id = message.from_user.id
-    user_input = parse_download_command(message.text)
+    user_input = parse_download_command(extract_arguments(message.text))
     if user_input is None:
         bot.reply_to(message, "please provide a link.")
         return
@@ -50,7 +49,7 @@ def download_command(message: Message) -> None:
         yt = YouTube(url)
         yt.check_availability()
     except Exception:
-        bot.reply_to(message, "sorry, the video is unavailiable:")
+        bot.reply_to(message, "sorry, the video is unavailiable.")
         return
 
     if yt.length > 3600:
@@ -73,9 +72,7 @@ def download_command(message: Message) -> None:
         'noplaylist': True,
         'writethumbnail': True,
         'format': 'bestaudio/best',
-        'writethumbnail': 'true',
         'postprocessors': [
-
             {
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': extension,
