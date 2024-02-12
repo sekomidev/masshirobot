@@ -29,11 +29,12 @@ def parse_download_args(message_text: str) -> dict or None:
         return None    
 
 
-def can_download_video(message: Message) -> bool:
+def can_download_video(url, message: Message) -> bool:
     try:
         yt = YouTube(url)
         yt.check_availability()
-    except Exception:
+    except Exception as e:
+        print(e)
         bot.reply_to(message, "sorry, the video is unavailiable.")
         return False
 
@@ -59,7 +60,7 @@ def download_command(message: Message) -> None:
     url = user_input['link']
     print(user_input)
 
-    if not can_download_video(message=message):
+    if not can_download_video(url, message=message):
         return
     
     yt = YouTube(url)
