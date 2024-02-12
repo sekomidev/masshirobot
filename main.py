@@ -1,5 +1,4 @@
 import telebot
-import subprocess
 import os
 import re
 from yt_dlp import YoutubeDL
@@ -12,12 +11,12 @@ bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
 users_running_download_command = {} # the list of users where their download requests are being processed
 
 
-# remove song and metadata files from {songs_path} directory
+# remove music file from {songs_path} directory
 def cleanup(video_id: str, song_extension: str) -> None:
     os.remove(f"{songs_path}{video_id}.{song_extension}")
 
 
-def parse_download_command(message_text: str) -> dict or None:
+def parse_download_args(message_text: str) -> dict or None:
     pattern = r"(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
     match = re.search(pattern, message_text)
     
@@ -25,10 +24,27 @@ def parse_download_command(message_text: str) -> dict or None:
         link = match.group('link')
         title = match.group('title')
         artist = match.group('artist')
-        
         return {'link': link, 'title': title, 'artist': artist}
     else:
         return None    
+
+
+def can_download_video(message: Message) -> bool:
+    try:
+        yt = YouTube(url)
+        yt.check_availability()
+    except Exception:
+        bot.reply_to(message, "sorry, the video is unavailiable.")
+        return False
+
+    if yt.length > 3600:
+        bot.reply_to(message, "sorry, the video is too long. i can't download large files because of size limits.")
+        return False
+    if users_running_download_command.get(message.from_user.id) is True:
+        bot.reply_to(message, "hey, please wait until the previous download finishes! ><")
+        return False
+
+    return True
 
 
 @bot.message_handler(commands=['start'])
@@ -39,29 +55,15 @@ def start_command(message: Message) -> None:
 
 @bot.message_handler(commands=['download'])
 def download_command(message: Message) -> None:
-    user_id = message.from_user.id
-    user_input = parse_download_command(extract_arguments(message.text))
-    if user_input is None:
-        bot.reply_to(message, "please provide a link.")
-        return
+    user_input = parse_download_args(extract_arguments(message.text))
     url = user_input['link']
-    try:
-        yt = YouTube(url)
-        yt.check_availability()
-    except Exception:
-        bot.reply_to(message, "sorry, the video is unavailiable.")
-        return
+    print(user_input)
 
-    if yt.length > 3600:
-        bot.reply_to(message, "sorry, the video is too long. i can't download large files because of size limits.")
+    if not can_download_video(message=message):
         return
-    if users_running_download_command.get(user_id) is True:
-        bot.reply_to(message, "hey, please wait until the previous download finishes! ><")
-        return
-
+    
+    yt = YouTube(url)
     bot_is_downloading_message = bot.reply_to(message, "downloading, please wait...")
-    print(f"downloading {url}")
-
     extension = "mp3"
     song_format = f"{songs_path}{yt.video_id}"
     song_path = f"{songs_path}{yt.video_id}.{extension}"
@@ -72,8 +74,7 @@ def download_command(message: Message) -> None:
         'noplaylist': True,
         'writethumbnail': True,
         'format': 'bestaudio/best',
-        'postprocessors': [
-            {
+        'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': extension,
                 'preferredquality': '192',
@@ -87,7 +88,7 @@ def download_command(message: Message) -> None:
         ],
     }
 
-    users_running_download_command[user_id] = True
+    users_running_download_command[message.from_user.id] = True
 
     with YoutubeDL(options) as ydl:
         ydl.download(url)
@@ -97,7 +98,7 @@ def download_command(message: Message) -> None:
     with open(song_path, 'rb') as audio_file:
         bot.send_audio(message.chat.id, audio_file, title=title, performer=artist)
 
-    users_running_download_command[user_id] = False
+    users_running_download_command[message.from_user.id] = False
     bot.delete_message(chat_id=bot_is_downloading_message.chat.id, message_id=bot_is_downloading_message.id)
     cleanup(yt.video_id, song_extension=extension)
 
