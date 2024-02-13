@@ -50,11 +50,20 @@ def can_download_video(url, message: Message) -> bool:
 
 @bot.message_handler(commands=['start'])
 def start_command(message: Message) -> None:
-    instructions = "this bot can download (almost) any song from youtube <3"
-    bot.reply_to(message, instructions)
+    start_text = "this bot can download (almost) any song from youtube :3"
+    bot.reply_to(message, start_text)
 
 
-@bot.message_handler(commands=['download'])
+@bot.message_handler(commands=['help'])
+def help_command(message: Message):
+    help_text = (
+        "Usage: /download (link) title: (title) artist: (artist)\n",
+        "Example: /download https://www.youtube.com/watch?v=vKhpQTYOpUU title: Masshiro Na Yuki artist: Halozy\n",
+        "or simply /d https://www.youtube.com/watch?v=vKhpQTYOpUU"
+    )
+    bot.reply_to(message, help_text)
+
+@bot.message_handler(commands=['d', 'download'])
 def download_command(message: Message) -> None:
     user_input = parse_download_args(extract_arguments(message.text))
     url = user_input['link']
