@@ -57,8 +57,8 @@ def start_command(message: Message) -> None:
 @bot.message_handler(commands=['help'])
 def help_command(message: Message):
     help_text = (
-        "Usage: /download (link) title: (title) artist: (artist)\n"
-        "Example: /download https://www.youtube.com/watch?v=vKhpQTYOpUU title: Masshiro Na Yuki artist: Halozy\n"
+        "Usage: /download (link) title: (title) artist: (artist)\n\n"
+        "Example: /download https://www.youtube.com/watch?v=vKhpQTYOpUU title: Masshiro Na Yuki artist: Halozy\n\n"
         "or simply /d https://www.youtube.com/watch?v=vKhpQTYOpUU"
     )
     bot.reply_to(message, help_text)
