@@ -112,11 +112,10 @@ def download_command(message: Message) -> None:
             artist = yt.author
         with open(song_path, 'rb') as audio_file:
             bot.send_audio(message.chat.id, audio_file, title=title, performer=artist, timeout=600)
-
-        users_running_download_command[message.from_user.id] = False
-        bot.delete_message(chat_id=bot_is_downloading_message.chat.id, message_id=bot_is_downloading_message.id)
     except Exception as err:
         bot.reply_to(message, f"sowwy, cant process it {err}")
+    users_running_download_command[message.from_user.id] = False
+    bot.delete_message(chat_id=bot_is_downloading_message.chat.id, message_id=bot_is_downloading_message.id)
     cleanup(yt.video_id, song_extension=extension)
 
 
