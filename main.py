@@ -6,6 +6,7 @@ from pytube import YouTube
 from telebot.types import Message
 from telebot.util import extract_arguments
 from config import TELEGRAM_API_TOKEN, songs_path
+from typing import Optional
 
 bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
 users_running_download_command = {} # the list of users where their download requests are being processed
@@ -16,7 +17,7 @@ def cleanup(video_id: str, song_extension: str) -> None:
     os.remove(f"{songs_path}{video_id}.{song_extension}")
 
 
-def parse_download_args(message_text: str) -> dict or None:
+def parse_download_args(message_text: str) -> Optional[dict]:
     pattern = r"(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
     match = re.search(pattern, message_text)
     
@@ -99,15 +100,20 @@ def download_command(message: Message) -> None:
     }
 
     users_running_download_command[message.from_user.id] = True
-
-    with YoutubeDL(options) as ydl:
-        ydl.download(url)
+    try:
+        with YoutubeDL(options) as ydl:
+            ydl.download(url)
     
-    title = user_input['title']
-    artist = user_input['artist']
-    with open(song_path, 'rb') as audio_file:
-        bot.send_audio(message.chat.id, audio_file, title=title, performer=artist)
-
+        title = user_input['title']
+        if not title:
+            title = yt.title
+        artist = user_input['artist']
+        if not artist:
+            artist = yt.author
+        with open(song_path, 'rb') as audio_file:
+            bot.send_audio(message.chat.id, audio_file, title=title, performer=artist, timeout=600)
+    except Exception as err:
+        bot.reply_to(message, f"sowwy, cant process it {err}")
     users_running_download_command[message.from_user.id] = False
     bot.delete_message(chat_id=bot_is_downloading_message.chat.id, message_id=bot_is_downloading_message.id)
     cleanup(yt.video_id, song_extension=extension)
