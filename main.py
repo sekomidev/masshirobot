@@ -120,9 +120,4 @@ def download_command(message: Message) -> None:
 
 
 if __name__ == "__main__":
-    try:
-        bot.polling(none_stop=True, interval=0)
-    except Exception as e:
-        print(e)
-        print("restarting bot...")
-        bot.polling(none_stop=True, interval=0)
+    bot.polling(non_stop=True, interval=0)
