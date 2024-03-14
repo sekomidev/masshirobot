@@ -1,4 +1,5 @@
 import telebot
+import sys
 import os
 import re
 from yt_dlp import YoutubeDL
@@ -68,6 +69,11 @@ def help_command(message: Message):
 def download_command(message: Message) -> None:
     user_input = parse_download_args(extract_arguments(message.text))
     url = user_input['link']
+
+    if not url:
+        bot.reply_to(message, "please provide a link.")
+        return
+
     print(user_input)
 
     if not can_download_video(url, message=message):
@@ -120,4 +126,9 @@ def download_command(message: Message) -> None:
 
 
 if __name__ == "__main__":
-    bot.polling(non_stop=True, interval=0)
+    while True:
+        try:
+            bot.polling(non_stop=True, interval=0)
+        except Exception as e:
+            print(e)
+            print("restarting bot...")
