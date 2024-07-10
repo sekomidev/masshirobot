@@ -140,7 +140,7 @@ def download_command(message: Message) -> None:
                 message.chat.id, audio_file, title=title, performer=artist, timeout=600
             )
     except Exception as err:
-        bot.reply_to(message, f"sowwy, cant process it: {err}")
+        bot.reply_to(message, f"sowwy, cant process it {err}")
     users_currently_downloading[message.from_user.id] = False
     bot.delete_message(
         chat_id=bot_is_downloading_message.chat.id,
