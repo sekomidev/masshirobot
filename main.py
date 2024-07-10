@@ -10,7 +10,7 @@ from config import TELEGRAM_API_TOKEN, songs_path
 from typing import Optional
 
 bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
-users_running_download_command = {}  # the list of users where their download requests are being processed
+users_currently_downloading = {}
 
 
 # remove music file from {songs_path} directory
@@ -48,7 +48,7 @@ def can_download_video(url, message: Message) -> bool:
             "sorry, the video is too long. i can't download large files because of size limits.",
         )
         return False
-    if users_running_download_command.get(message.from_user.id) is True:
+    if users_currently_downloading.get(message.from_user.id) is True:
         bot.reply_to(
             message, "hey, please wait until the previous download finishes! ><"
         )
@@ -116,7 +116,7 @@ def download_command(message: Message) -> None:
         ],
     }
 
-    users_running_download_command[message.from_user.id] = True
+    users_currently_downloading[message.from_user.id] = True
     try:
         with YoutubeDL(options) as ydl:
             ydl.download(url)
@@ -133,7 +133,7 @@ def download_command(message: Message) -> None:
             )
     except Exception as err:
         bot.reply_to(message, f"sowwy, cant process it {err}")
-    users_running_download_command[message.from_user.id] = False
+    users_currently_downloading[message.from_user.id] = False
     bot.delete_message(
         chat_id=bot_is_downloading_message.chat.id,
         message_id=bot_is_downloading_message.id,
