@@ -1,4 +1,6 @@
 import telebot
+import logging
+import signal
 import sys
 import os
 import re
@@ -9,8 +11,13 @@ from telebot.util import extract_arguments
 from config import TELEGRAM_API_TOKEN, songs_path
 from typing import Optional
 
+# NOTE: not that useful right now, but it's better to set up logging now
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
+)
+
 bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
-users_running_download_command = {}  # the list of users where their download requests are being processed
+users_currently_downloading = {}
 
 
 # remove music file from {songs_path} directory
@@ -19,6 +26,7 @@ def cleanup(video_id: str, song_extension: str) -> None:
 
 
 def parse_download_args(message_text: str) -> Optional[dict]:
+    # FIXME: what the fuck????
     pattern = (
         r"(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
     )
@@ -48,7 +56,7 @@ def can_download_video(url, message: Message) -> bool:
             "sorry, the video is too long. i can't download large files because of size limits.",
         )
         return False
-    if users_running_download_command.get(message.from_user.id) is True:
+    if users_currently_downloading.get(message.from_user.id) is True:
         bot.reply_to(
             message, "hey, please wait until the previous download finishes! ><"
         )
@@ -116,7 +124,7 @@ def download_command(message: Message) -> None:
         ],
     }
 
-    users_running_download_command[message.from_user.id] = True
+    users_currently_downloading[message.from_user.id] = True
     try:
         with YoutubeDL(options) as ydl:
             ydl.download(url)
@@ -132,8 +140,8 @@ def download_command(message: Message) -> None:
                 message.chat.id, audio_file, title=title, performer=artist, timeout=600
             )
     except Exception as err:
-        bot.reply_to(message, f"sowwy, cant process it {err}")
-    users_running_download_command[message.from_user.id] = False
+        bot.reply_to(message, f"sowwy, cant process it: {err}")
+    users_currently_downloading[message.from_user.id] = False
     bot.delete_message(
         chat_id=bot_is_downloading_message.chat.id,
         message_id=bot_is_downloading_message.id,
@@ -141,10 +149,21 @@ def download_command(message: Message) -> None:
     cleanup(yt.video_id, song_extension=extension)
 
 
-if __name__ == "__main__":
+def interrupt_handler(signal, frame):
+    logging.info("shutting down :3")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, interrupt_handler)
+
+
+def main():
     while True:
         try:
             bot.polling(non_stop=True, interval=0)
         except Exception as e:
-            print(e)
-            print("restarting bot...")
+            logging.warn(e)
+
+
+if __name__ == "__main__":
+    main()
