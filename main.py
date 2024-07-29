@@ -104,21 +104,13 @@ def download_command(message: Message) -> None:
         "outtmpl": song_format,
         "quiet": True,
         "noplaylist": True,
-        "writethumbnail": True,
+        "writethumbnail": False,
         "format": "bestaudio/best",
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
                 "preferredquality": "192",
-            },
-            {
-                "key": "FFmpegMetadata",
-                "add_metadata": True,
-            },
-            {
-                "key": "EmbedThumbnail",
-                "already_have_thumbnail": False,
             },
         ],
     }
