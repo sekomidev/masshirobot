@@ -21,8 +21,8 @@ users_currently_downloading = {}
 
 
 # remove music file from {songs_path} directory
-def cleanup(video_id: str, song_extension: str) -> None:
-    os.remove(f"{songs_path}{video_id}.{song_extension}")
+def delete_music_file(video_id: str) -> None:
+    os.remove(f"{songs_path}{video_id}.mp3")
 
 
 def parse_download_args(message_text: str) -> Optional[dict]:
@@ -97,9 +97,8 @@ def download_command(message: Message) -> None:
 
     yt = YouTube(url)
     bot_is_downloading_message = bot.reply_to(message, "downloading, please wait...")
-    extension = "mp3"
     song_format = f"{songs_path}{yt.video_id}"
-    song_path = f"{songs_path}{yt.video_id}.{extension}"
+    song_path = f"{songs_path}{yt.video_id}.mp3"
 
     options = {
         "outtmpl": song_format,
@@ -110,7 +109,7 @@ def download_command(message: Message) -> None:
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
-                "preferredcodec": extension,
+                "preferredcodec": "mp3",
                 "preferredquality": "192",
             },
             {
@@ -146,7 +145,15 @@ def download_command(message: Message) -> None:
         chat_id=bot_is_downloading_message.chat.id,
         message_id=bot_is_downloading_message.id,
     )
-    cleanup(yt.video_id, song_extension=extension)
+    delete_music_file(yt.video_id)
+
+
+@bot.message_handler(commands=["kolxoz"])
+def windows_command(message: Message) -> None:
+    bot.reply_to(
+        message,
+        "debloated windows 11 is faster than arch linux, boots faster and more power efficient, also looks modern and consistent, and alway from ANIMAL LINUX WORLD 😅 but linux is good too, it is good for kolxoz, when they wanna explore bash and waste years (fun fact: if he uses open source his WIFE gotta be open source too 😂)",
+    )
 
 
 def interrupt_handler(signal, frame):
