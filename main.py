@@ -38,6 +38,7 @@ def parse_download_args(message_text: str) -> Optional[dict]:
         artist = match.group("artist")
         return {"link": link, "title": title, "artist": artist}
     else:
+        logging.info(f"match not found in {message_text}")
         return None
 
 
@@ -46,7 +47,7 @@ def can_download_video(url, message: Message) -> bool:
         yt = YouTube(url)
         yt.check_availability()
     except Exception as e:
-        print(e)
+        logging.info(e)
         bot.reply_to(message, "sorry, the video is unavailiable.")
         return False
 
@@ -56,6 +57,7 @@ def can_download_video(url, message: Message) -> bool:
             "sorry, the video is too long. i can't download large files because of size limits.",
         )
         return False
+
     if users_currently_downloading.get(message.from_user.id) is True:
         bot.reply_to(
             message, "hey, please wait until the previous download finishes! ><"
@@ -67,15 +69,15 @@ def can_download_video(url, message: Message) -> bool:
 
 @bot.message_handler(commands=["start"])
 def start_command(message: Message) -> None:
-    start_text = "this bot can download (almost) any song from youtube :3"
+    start_text = "hello! check out the /help command for instructions :3"
     bot.reply_to(message, start_text)
 
 
 @bot.message_handler(commands=["help"])
 def help_command(message: Message):
     help_text = (
-        "Usage: /download (link) title: (title) artist: (artist)\n\n"
-        "Example: /download https://www.youtube.com/watch?v=vKhpQTYOpUU title: Masshiro Na Yuki artist: Halozy\n\n"
+        "usage: /download (link) [title: ...] [artist: ...]\n\n"
+        "example: /download https://www.youtube.com/watch?v=vKhpQTYOpUU title: Masshiro Na Yuki artist: Halozy\n\n"
         "or simply /d https://www.youtube.com/watch?v=vKhpQTYOpUU"
     )
     bot.reply_to(message, help_text)
@@ -86,11 +88,18 @@ def download_command(message: Message) -> None:
     user_input = parse_download_args(extract_arguments(message.text))
     url = user_input["link"]
 
+    # if url is not found the first time, check if it's possible
+    # to find one in the replied message (if one exists)
+    if not url:
+        if message.reply_to_message:
+            user_input["link"] = message.reply_to_message.text
+            url = user_input["link"]
+
     if not url:
         bot.reply_to(message, "please provide a link.")
         return
 
-    print(user_input)
+    logging.info(user_input)
 
     if not can_download_video(url, message=message):
         return
@@ -131,7 +140,7 @@ def download_command(message: Message) -> None:
                 message.chat.id, audio_file, title=title, performer=artist, timeout=600
             )
     except Exception as err:
-        bot.reply_to(message, f"sowwy, cant process it {err}")
+        bot.reply_to(message, f"sowwy, cant process it: {err} :3")
     users_currently_downloading[message.from_user.id] = False
     bot.delete_message(
         chat_id=bot_is_downloading_message.chat.id,
@@ -161,7 +170,7 @@ def main():
         try:
             bot.polling(non_stop=True, interval=0)
         except Exception as e:
-            logging.warn(e)
+            logging.warning(e)
 
 
 if __name__ == "__main__":
