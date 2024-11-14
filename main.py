@@ -1,19 +1,21 @@
-import telebot
 import logging
-import signal
-import sys
 import os
 import re
-from yt_dlp import YoutubeDL
+import signal
+import sys
+from typing import Optional
+
+import telebot
 from pytube import YouTube
 from telebot.types import Message
 from telebot.util import extract_arguments
+from yt_dlp import YoutubeDL
+
 from config import TELEGRAM_API_TOKEN, songs_path
-from typing import Optional
 
 # NOTE: not that useful right now, but it's better to set up logging now
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s"
+    level=logging.DEBUG, format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
 bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
@@ -41,13 +43,17 @@ def parse_download_args(message_text: str) -> Optional[dict]:
         logging.info(f"match not found in {message_text}")
         return None
 
-
 def can_download_video(url, message: Message) -> bool:
+    """
+IMPORTANT: As of 2024-11-14, the yt object cannot be constructed 
+due to some youtube bullshit beyond the scope of this project. 
+As such, this function MUST NOT be used.
+    """
     try:
         yt = YouTube(url)
         yt.check_availability()
     except Exception as e:
-        logging.info(e)
+        logging.warn(e)
         bot.reply_to(message, "sorry, the video is unavailiable.")
         return False
 
@@ -85,6 +91,7 @@ def help_command(message: Message):
 
 @bot.message_handler(commands=["d", "download"])
 def download_command(message: Message) -> None:
+    logging.debug(f"executing download_command; message.text: {message.text}")
     user_input = parse_download_args(extract_arguments(message.text))
     url = user_input["link"]
 
@@ -101,13 +108,20 @@ def download_command(message: Message) -> None:
 
     logging.info(user_input)
 
-    if not can_download_video(url, message=message):
-        return
+    #if not can_download_video(url, message):
+    #    logging.warn("cannot download")
+    #    return
 
-    yt = YouTube(url)
+    # XXX
+    # IMPORTANT: As of 2024-11-14, the yt object cannot be constructed 
+    # due to some youtube bullshit beyond the scope of this project. 
+
+    #logging.debug("trying to construct yt object")
+    #yt = YouTube(url)
+    #logging.debug("yt object constructed")
     bot_is_downloading_message = bot.reply_to(message, "downloading, please wait...")
-    song_format = f"{songs_path}{yt.video_id}"
-    song_path = f"{songs_path}{yt.video_id}.mp3"
+    song_format = f"{songs_path}{user_input['title']}"
+    song_path = f"{songs_path}{user_input['title']}.mp3"
 
     options = {
         "outtmpl": song_format,
@@ -127,15 +141,19 @@ def download_command(message: Message) -> None:
     users_currently_downloading[message.from_user.id] = True
     try:
         with YoutubeDL(options) as ydl:
+            logging.debug("downloading video")
             ydl.download(url)
 
         title = user_input["title"]
         if not title:
-            title = yt.title
+            # HACK
+            title = "No title"
         artist = user_input["artist"]
         if not artist:
-            artist = yt.author
+            # HACK
+            artist = "Reol"
         with open(song_path, "rb") as audio_file:
+            logging.debug("opened audio file, about to send")
             bot.send_audio(
                 message.chat.id, audio_file, title=title, performer=artist, timeout=600
             )
@@ -146,7 +164,7 @@ def download_command(message: Message) -> None:
         chat_id=bot_is_downloading_message.chat.id,
         message_id=bot_is_downloading_message.id,
     )
-    delete_music_file(yt.video_id)
+    delete_music_file(user_input['title'])
 
 
 @bot.message_handler(commands=["kolxoz"])
@@ -170,7 +188,7 @@ def main():
         try:
             bot.polling(non_stop=True, interval=0)
         except Exception as e:
-            logging.warning(e)
+            logging.error(e)
 
 
 if __name__ == "__main__":
