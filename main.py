@@ -29,8 +29,9 @@ def delete_music_file(video_id: str) -> None:
 
 def parse_download_args(message_text: str) -> Optional[dict]:
     # FIXME: what the fuck????
+    # eh, i guess it works...
     pattern = (
-        r"(?P<link>.*?)(\s+title:\s*(?P<title>.*?))?(\s+artist:\s*(?P<artist>.*?))?$"
+        r"(?P<link>.*?)(\s+(?:title|t):?\s*(?P<title>.*?))?(?:\s+(?:artist|a):?\s*(?P<artist>.*?))?$"
     )
     match = re.search(pattern, message_text)
 
