@@ -395,6 +395,7 @@ _pkginfo.txt
 
 # Others
 songs/
+.vscode/
 ClientBin/
 ~$*
 *~
