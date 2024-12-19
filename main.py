@@ -28,7 +28,7 @@ def delete_music_file(video_id: str) -> None:
 
 
 def parse_download_args(message_text: str) -> Optional[dict]:
-    # FIXME: what the fuck????
+    # XXX: what the fuck????
     # eh, i guess it works...
     pattern = (
         r"(?P<link>.*?)(\s+(?:title|t):?\s*(?P<title>.*?))?(?:\s+(?:artist|a):?\s*(?P<artist>.*?))?$"
@@ -113,7 +113,6 @@ def download_command(message: Message) -> None:
     #    logging.warn("cannot download")
     #    return
 
-    # XXX
     # IMPORTANT: As of 2024-11-14, the yt object cannot be constructed 
     # due to some youtube bullshit beyond the scope of this project. 
 
@@ -147,11 +146,9 @@ def download_command(message: Message) -> None:
 
         title = user_input["title"]
         if not title:
-            # HACK
             title = "No title"
         artist = user_input["artist"]
         if not artist:
-            # HACK
             artist = "Reol"
         with open(song_path, "rb") as audio_file:
             logging.debug("opened audio file, about to send")
