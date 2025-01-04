@@ -11,28 +11,23 @@ from telebot.types import Message
 from telebot.util import extract_arguments
 from yt_dlp import YoutubeDL
 
-from config import TELEGRAM_API_TOKEN, songs_path
-
-# NOTE: not that useful right now, but it's better to set up logging now
 logging.basicConfig(
-    level=logging.DEBUG, format="%(asctime)s | %(levelname)s | %(message)s"
+    level=os.getenv("LOG_LEVEL"), format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
-bot = telebot.TeleBot(TELEGRAM_API_TOKEN)
+audio_files_path = "audio/"
+bot = telebot.TeleBot(os.getenv("MASSHIROBOT_API_TOKEN"))
 users_currently_downloading = {}
 
 
-# remove music file from {songs_path} directory
-def delete_music_file(video_id: str) -> None:
-    os.remove(f"{songs_path}{video_id}.mp3")
+def delete_audio_file(video_id: str) -> None:
+    os.remove(f"{audio_files_path}{video_id}.mp3")
 
 
 def parse_download_args(message_text: str) -> Optional[dict]:
     # XXX: what the fuck????
     # eh, i guess it works...
-    pattern = (
-        r"(?P<link>.*?)(\s+(?:title|t):?\s*(?P<title>.*?))?(?:\s+(?:artist|a):?\s*(?P<artist>.*?))?$"
-    )
+    pattern = r"(?P<link>.*?)(\s+(?:title|t):?\s*(?P<title>.*?))?(?:\s+(?:artist|a):?\s*(?P<artist>.*?))?$"
     match = re.search(pattern, message_text)
 
     if match:
@@ -44,11 +39,12 @@ def parse_download_args(message_text: str) -> Optional[dict]:
         logging.info(f"match not found in {message_text}")
         return None
 
+
 def can_download_video(url, message: Message) -> bool:
     """
-IMPORTANT: As of 2024-11-14, the yt object cannot be constructed 
-due to some youtube bullshit beyond the scope of this project. 
-As such, this function MUST NOT be used.
+    IMPORTANT: As of 2024-11-14, the yt object cannot be constructed
+    due to some youtube bullshit beyond the scope of this project.
+    As such, this function MUST NOT be used.
     """
     try:
         yt = YouTube(url)
@@ -96,32 +92,25 @@ def download_command(message: Message) -> None:
     user_input = parse_download_args(extract_arguments(message.text))
     url = user_input["link"]
 
-    # if url is not found the first time, check if it's possible
-    # to find one in the replied message (if one exists)
-    if not url:
-        if message.reply_to_message:
-            user_input["link"] = message.reply_to_message.text
-            url = user_input["link"]
-
     if not url:
         bot.reply_to(message, "please provide a link.")
         return
 
     logging.info(user_input)
 
-    #if not can_download_video(url, message):
+    # if not can_download_video(url, message):
     #    logging.warn("cannot download")
     #    return
 
-    # IMPORTANT: As of 2024-11-14, the yt object cannot be constructed 
-    # due to some youtube bullshit beyond the scope of this project. 
+    # IMPORTANT: As of 2024-11-14, the yt object cannot be constructed
+    # due to some youtube bullshit beyond the scope of this project.
 
-    #logging.debug("trying to construct yt object")
-    #yt = YouTube(url)
-    #logging.debug("yt object constructed")
+    # logging.debug("trying to construct yt object")
+    # yt = YouTube(url)
+    # logging.debug("yt object constructed")
     bot_is_downloading_message = bot.reply_to(message, "downloading, please wait...")
-    song_format = f"{songs_path}{user_input['title']}"
-    song_path = f"{songs_path}{user_input['title']}.mp3"
+    song_format = f"{audio_files_path}{user_input['title']}"
+    audio_path = f"{audio_files_path}{user_input['title']}.mp3"
 
     options = {
         "outtmpl": song_format,
@@ -150,7 +139,7 @@ def download_command(message: Message) -> None:
         artist = user_input["artist"]
         if not artist:
             artist = "Reol"
-        with open(song_path, "rb") as audio_file:
+        with open(audio_path, "rb") as audio_file:
             logging.debug("opened audio file, about to send")
             bot.send_audio(
                 message.chat.id, audio_file, title=title, performer=artist, timeout=600
@@ -162,7 +151,7 @@ def download_command(message: Message) -> None:
         chat_id=bot_is_downloading_message.chat.id,
         message_id=bot_is_downloading_message.id,
     )
-    delete_music_file(user_input['title'])
+    delete_audio_file(user_input["title"])
 
 
 @bot.message_handler(commands=["kolxoz"])
